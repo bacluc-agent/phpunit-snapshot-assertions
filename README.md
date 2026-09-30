@@ -109,6 +109,10 @@ To make snapshot assertions, use the `Spatie\Snapshots\MatchesSnapshots` trait i
 - `assertMatchesYamlSnapshot($actual, $id)`
 - `assertMatchesImageSnapshot($actual, $threshold, $includeAa, $id)`
 
+### PHPUnit compatibility
+
+`src/` uses no PHPUnit internals. `composer.json` supports PHPUnit `^9.6|^10.0|^11.0|^12.0|^13.0`; PHPUnit 12 requires PHP 8.3 and PHPUnit 13 requires PHP 8.4, so the test matrix runs the PHPUnit 12 line on PHP 8.3 and up and the PHPUnit 13 line on PHP 8.4 and up.
+
 ### Snapshot Testing 101
 
 Let's do a snapshot assertion for a simple string, "foo".
@@ -336,6 +340,32 @@ Drivers can be used by passing them as `assertMatchesSnapshot`'s second argument
 ```php
 $this->assertMatchesSnapshot($something->toYaml(), new MyYamlDriver());
 ```
+
+#### Custom drivers
+
+Each typed assertion builds its driver through an overridable factory method, so a test case swaps a driver by overriding one method instead of every assertion call site:
+
+```php
+class MyTest extends TestCase
+{
+    use MatchesSnapshots;
+
+    protected function getYamlDriver(): Driver
+    {
+        return new MyYamlDriver();
+    }
+}
+```
+
+The available factories are `getHtmlDriver()`, `getImageDriver()`, `getJsonDriver()`, `getObjectDriver()`, `getTextDriver()`, `getXmlDriver()` and `getYamlDriver()`. Each returns the built-in driver by default, typed as the `Driver` interface, so an override may return any driver. `getImageDriver()` receives the `$threshold` and `$includeAa` arguments of `assertMatchesImageSnapshot()` and passes them to `ImageDriver`.
+
+A few things to keep in mind:
+
+- The explicit per-assertion driver argument always wins over the factory.
+- `getImageDriver()`'s arguments are optional: an override that declares no parameters still works, because PHP silently ignores the extra arguments.
+- A driver's `extension()` becomes the snapshot file's extension. Overriding a factory with a driver whose `extension()` differs from the built-in one renames the snapshot files of every assertion that uses it.
+- These factories are not consulted by `assertMatchesSnapshot()` without an explicit driver, nor by `assertMatchesFileHashSnapshot()`. Pass your driver as `assertMatchesSnapshot`'s second argument, or use the typed `assertMatchesTextSnapshot()` / `assertMatchesObjectSnapshot()`, to customise those.
+- Like `getSnapshotDirectory()` and `getFileSnapshotDirectory()`, these method names are part of the trait. If your base test case already declares one, rename it.
 
 ### Usage in CI
 
