@@ -111,7 +111,7 @@ To make snapshot assertions, use the `Spatie\Snapshots\MatchesSnapshots` trait i
 
 ### PHPUnit compatibility
 
-`src/` uses no PHPUnit internals. `composer.json` supports PHPUnit `^9.6|^10.0|^11.0|^12.0|^13.0`; PHPUnit 12 requires PHP 8.3 and PHPUnit 13 requires PHP 8.4, so the test matrix runs the PHPUnit 12 line on PHP 8.3 and up and the PHPUnit 13 line on PHP 8.4 and up.
+`src/` uses no `@internal` PHPUnit classes: drivers call `PHPUnit\Framework\Assert`, the trait uses the `#[Before]`/`#[PostCondition]` hook attributes, and the one method outside PHPUnit's backward-compatibility promise is `TestCase::nameWithDataSet()`/`getName()` (snapshot ids), isolated behind `src/Concerns/PhpUnitCompatibility.php`. `composer.json` supports PHPUnit `^9.6|^10.0|^11.0|^12.0|^13.0`; PHPUnit 12 requires PHP 8.3 and PHPUnit 13 requires PHP 8.4, so the test matrix runs the PHPUnit 12 line on PHP 8.3 and up and the PHPUnit 13 line on PHP 8.4 and up.
 
 ### Snapshot Testing 101
 
@@ -294,6 +294,20 @@ class OrderTest
     }
 }
 ```
+
+`YamlDriver` accepts the Symfony `Yaml::dump()` options as optional constructor arguments — `inline`, `indent`, `flags` — defaulting to the previous behaviour byte-for-byte:
+
+```php
+use Spatie\Snapshots\Drivers\YamlDriver;
+use Symfony\Component\Yaml\Yaml;
+
+$this->assertMatchesSnapshot(
+    $openApiDocument,
+    new YamlDriver(inline: 10, indent: 2, flags: Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK)
+);
+```
+
+`serialize()` and `match()` apply the same options, so writing and comparing stay consistent. A string argument is parsed and re-dumped with these options; to keep regeneration byte-identical to a stored snapshot, construct the driver with the same options that snapshot was dumped with, or pass the array and let the driver dump it.
 
 ### Writing Custom Drivers
 
