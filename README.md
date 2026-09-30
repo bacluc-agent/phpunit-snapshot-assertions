@@ -80,7 +80,7 @@ Tests: 1, Assertions: 1, Failures: 1.
 
 ## Support us
 
-[<img src="https://spatie.be/github-ad-image/phpunit-snapshot-assertions.jpg" width="419px" />](https://spatie.be/github-ad-click/phpunit-snapshot-assertions)
+[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/phpunit-snapshot-assertions.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/phpunit-snapshot-assertions)
 
 We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
 
@@ -108,6 +108,10 @@ To make snapshot assertions, use the `Spatie\Snapshots\MatchesSnapshots` trait i
 - `assertMatchesXmlSnapshot($actual, $id)`
 - `assertMatchesYamlSnapshot($actual, $id)`
 - `assertMatchesImageSnapshot($actual, $threshold, $includeAa, $id)`
+
+### PHPUnit compatibility
+
+`src/` uses no `@internal` PHPUnit classes: drivers call `PHPUnit\Framework\Assert`, the trait uses the `#[Before]`/`#[PostCondition]` hook attributes, and the one method outside PHPUnit's backward-compatibility promise is `TestCase::nameWithDataSet()`/`getName()` (snapshot ids), isolated behind `src/Concerns/PhpUnitCompatibility.php`. `composer.json` supports PHPUnit `^9.6|^10.0|^11.0|^12.0|^13.0`; PHPUnit 12 requires PHP 8.3 and PHPUnit 13 requires PHP 8.4, so the test matrix runs the PHPUnit 12 line on PHP 8.3 and up and the PHPUnit 13 line on PHP 8.4 and up.
 
 ### Snapshot Testing 101
 
@@ -291,6 +295,20 @@ class OrderTest
 }
 ```
 
+`YamlDriver` accepts the Symfony `Yaml::dump()` options as optional constructor arguments — `inline`, `indent`, `flags` — defaulting to the previous behaviour byte-for-byte:
+
+```php
+use Spatie\Snapshots\Drivers\YamlDriver;
+use Symfony\Component\Yaml\Yaml;
+
+$this->assertMatchesSnapshot(
+    $openApiDocument,
+    new YamlDriver(inline: 10, indent: 2, flags: Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK)
+);
+```
+
+`serialize()` and `match()` apply the same options, so writing and comparing stay consistent. A string argument is parsed and re-dumped with these options; to keep regeneration byte-identical to a stored snapshot, construct the driver with the same options that snapshot was dumped with, or pass the array and let the driver dump it.
+
 ### Writing Custom Drivers
 
 Drivers ensure that different types of data can be serialized and matched in their own way. A driver is a class that implements the `Spatie\Snapshots\Driver` interface, which requires three method implementations: `serialize`, `extension` and `match`.
@@ -336,6 +354,32 @@ Drivers can be used by passing them as `assertMatchesSnapshot`'s second argument
 ```php
 $this->assertMatchesSnapshot($something->toYaml(), new MyYamlDriver());
 ```
+
+#### Custom drivers
+
+Each typed assertion builds its driver through an overridable factory method, so a test case swaps a driver by overriding one method instead of every assertion call site:
+
+```php
+class MyTest extends TestCase
+{
+    use MatchesSnapshots;
+
+    protected function getYamlDriver(): Driver
+    {
+        return new MyYamlDriver();
+    }
+}
+```
+
+The available factories are `getHtmlDriver()`, `getImageDriver()`, `getJsonDriver()`, `getObjectDriver()`, `getTextDriver()`, `getXmlDriver()` and `getYamlDriver()`. Each returns the built-in driver by default, typed as the `Driver` interface, so an override may return any driver. `getImageDriver()` receives the `$threshold` and `$includeAa` arguments of `assertMatchesImageSnapshot()` and passes them to `ImageDriver`.
+
+A few things to keep in mind:
+
+- The explicit per-assertion driver argument always wins over the factory.
+- `getImageDriver()` must keep the trait's signature `getImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver` when a base test case already uses `MatchesSnapshots`, because PHP checks that signature at compile time. Only an override declared in the same class that uses the trait may drop the parameters — PHP then silently ignores the extra arguments.
+- A driver's `extension()` becomes the snapshot file's extension. Overriding a factory with a driver whose `extension()` differs from the built-in one renames the snapshot files of every assertion that uses it.
+- These factories are not consulted by `assertMatchesSnapshot()` without an explicit driver, nor by `assertMatchesFileHashSnapshot()`. Pass your driver as `assertMatchesSnapshot`'s second argument, or use the typed `assertMatchesTextSnapshot()` / `assertMatchesObjectSnapshot()`, to customise those.
+- Like `getSnapshotDirectory()` and `getFileSnapshotDirectory()`, these method names are part of the trait. If your base test case already declares one, rename it.
 
 ### Usage in CI
 
