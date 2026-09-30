@@ -362,7 +362,7 @@ The available factories are `getHtmlDriver()`, `getImageDriver()`, `getJsonDrive
 A few things to keep in mind:
 
 - The explicit per-assertion driver argument always wins over the factory.
-- `getImageDriver()`'s arguments are optional: an override that declares no parameters still works, because PHP silently ignores the extra arguments.
+- `getImageDriver()` must keep the trait's signature `getImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver` when a base test case already uses `MatchesSnapshots`, because PHP checks that signature at compile time. Only an override declared in the same class that uses the trait may drop the parameters — PHP then silently ignores the extra arguments.
 - A driver's `extension()` becomes the snapshot file's extension. Overriding a factory with a driver whose `extension()` differs from the built-in one renames the snapshot files of every assertion that uses it.
 - These factories are not consulted by `assertMatchesSnapshot()` without an explicit driver, nor by `assertMatchesFileHashSnapshot()`. Pass your driver as `assertMatchesSnapshot`'s second argument, or use the typed `assertMatchesTextSnapshot()` / `assertMatchesObjectSnapshot()`, to customise those.
 - Like `getSnapshotDirectory()` and `getFileSnapshotDirectory()`, these method names are part of the trait. If your base test case already declares one, rename it.
