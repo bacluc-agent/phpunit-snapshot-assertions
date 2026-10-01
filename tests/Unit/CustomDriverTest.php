@@ -9,6 +9,7 @@ use RuntimeException;
 use Spatie\Snapshots\Driver;
 use Spatie\Snapshots\Drivers\HtmlDriver;
 use Spatie\Snapshots\Drivers\ImageDriver;
+use Spatie\Snapshots\Drivers\JsonDriver;
 use Spatie\Snapshots\Drivers\ObjectDriver;
 use Spatie\Snapshots\Drivers\TextDriver;
 use Spatie\Snapshots\Drivers\XmlDriver;
@@ -46,8 +47,10 @@ class CustomDriverTest extends TestCase
     public function it_returns_the_built_in_driver_when_the_factory_is_not_overridden()
     {
         $case = $this->case();
+        $defaultCase = new DefaultDriverTestCase($this->snapshotDirectory);
 
         $this->assertInstanceOf(HtmlDriver::class, $case->factory('getHtmlDriver'));
+        $this->assertInstanceOf(JsonDriver::class, $defaultCase->factory('getJsonDriver'));
         $this->assertInstanceOf(ObjectDriver::class, $case->factory('getObjectDriver'));
         $this->assertInstanceOf(TextDriver::class, $case->factory('getTextDriver'));
         $this->assertInstanceOf(XmlDriver::class, $case->factory('getXmlDriver'));
@@ -63,6 +66,34 @@ class CustomDriverTest extends TestCase
         $case->assertMatchesJsonSnapshot('{"a":1}', 'overridden');
 
         $this->assertStringContainsString(
+            'custom-driver:',
+            file_get_contents(glob($this->snapshotDirectory.DIRECTORY_SEPARATOR.'*')[0])
+        );
+    }
+
+    /** @test */
+    #[Test]
+    public function it_uses_the_overridden_yaml_driver()
+    {
+        $case = new OverriddenYamlDriverTestCase($this->snapshotDirectory);
+
+        $case->assertMatchesYamlSnapshot("foo: bar\n", 'overridden-yaml');
+
+        $this->assertStringContainsString(
+            'custom-driver:',
+            file_get_contents(glob($this->snapshotDirectory.DIRECTORY_SEPARATOR.'*')[0])
+        );
+    }
+
+    /** @test */
+    #[Test]
+    public function it_prefers_the_explicit_driver_over_the_overridden_factory()
+    {
+        $case = $this->case();
+
+        $case->assertMatchesSnapshot('{"a":1}', new TextDriver, 'explicit');
+
+        $this->assertStringNotContainsString(
             'custom-driver:',
             file_get_contents(glob($this->snapshotDirectory.DIRECTORY_SEPARATOR.'*')[0])
         );
@@ -167,6 +198,14 @@ class CustomDriverTestCase extends CustomDriverTestCaseBase
         $this->imageDriverArgs = [$threshold, $includeAa];
 
         return new TextDriver;
+    }
+}
+
+class OverriddenYamlDriverTestCase extends CustomDriverTestCaseBase
+{
+    protected function getYamlDriver(): Driver
+    {
+        return new LabelledTextDriver;
     }
 }
 

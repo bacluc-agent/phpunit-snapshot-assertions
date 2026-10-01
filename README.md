@@ -111,7 +111,7 @@ To make snapshot assertions, use the `Spatie\Snapshots\MatchesSnapshots` trait i
 
 ### PHPUnit compatibility
 
-`src/` uses no `@internal` PHPUnit classes: drivers call `PHPUnit\Framework\Assert`, the trait uses the `#[Before]`/`#[PostCondition]` hook attributes, and the one method outside PHPUnit's backward-compatibility promise is `TestCase::nameWithDataSet()`/`getName()` (snapshot ids), isolated behind `src/Concerns/PhpUnitCompatibility.php`. `composer.json` supports PHPUnit `^9.6|^10.0|^11.0|^12.0|^13.0`; PHPUnit 12 requires PHP 8.3 and PHPUnit 13 requires PHP 8.4, so the test matrix runs the PHPUnit 12 line on PHP 8.3 and up and the PHPUnit 13 line on PHP 8.4 and up.
+`src/` uses no `@internal` PHPUnit classes: drivers call `PHPUnit\Framework\Assert` and the trait uses the `#[Before]`/`#[PostCondition]` hook attributes. The one exception is snapshot ids: on PHPUnit 9.x `src/Concerns/PhpUnitCompatibility.php` provides `name()`/`nameWithDataSet()` itself, while on PHPUnit 10+ the trait is empty and `nameWithDataSet()` resolves to PHPUnit's `@internal` `TestCase::nameWithDataSet()` — the library's only `@internal` dependency, isolated behind that trait. `composer.json` supports PHPUnit `^9.6|^10.0|^11.0|^12.0|^13.0`; PHPUnit 12 requires PHP 8.3 and PHPUnit 13 requires PHP 8.4, so the test matrix runs the PHPUnit 12 line on PHP 8.3 and up and the PHPUnit 13 line on PHP 8.4 and up.
 
 ### Snapshot Testing 101
 
