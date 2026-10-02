@@ -109,6 +109,25 @@ To make snapshot assertions, use the `Spatie\Snapshots\MatchesSnapshots` trait i
 - `assertMatchesYamlSnapshot($actual, $id)`
 - `assertMatchesImageSnapshot($actual, $threshold, $includeAa, $id)`
 
+### PHPUnit compatibility
+
+`src/` uses no `@internal` PHPUnit classes: drivers call `PHPUnit\Framework\Assert` and the trait uses the `#[Before]`/`#[PostCondition]` hook attributes. The one exception is snapshot ids: on PHPUnit 9.x `src/Concerns/PhpUnitCompatibility.php` provides `name()`/`nameWithDataSet()` itself, while on PHPUnit 10+ the trait is empty and `nameWithDataSet()` resolves to PHPUnit's `@internal` `TestCase::nameWithDataSet()` — the library's only `@internal` dependency, isolated behind that trait. `composer.json` supports PHPUnit `^9.6|^10.0|^11.0|^12.0|^13.0`; PHPUnit 12 requires PHP 8.3 and PHPUnit 13 requires PHP 8.4, so the test matrix runs the PHPUnit 12 line on PHP 8.3 and up and the PHPUnit 13 line on PHP 8.4 and up.
+
+If you override `getSnapshotId()` — which is what the default does — you do not depend on those methods, and this concern does not apply to you. The one case that does reach them is the named-`$id` path in `resolveSnapshotId()`, which builds `<TestClass>__<nameWithDataSet()>__s-<id>`. Override `resolveSnapshotId()` if you need to customise named snapshot ids and want to stay off PHPUnit internals:
+
+```php
+protected function resolveSnapshotId(?string $id = null): string
+{
+    if ($id === null) {
+        return parent::resolveSnapshotId();
+    }
+
+    return 'named-'.$id;
+}
+```
+
+Do not call `name()` or `nameWithDataSet()` yourself. On PHPUnit 10+ both are `final` and `@internal`, so they are outside PHPUnit's compatibility promise, and because they are `final` you cannot shim them with your own `name()`/`nameWithDataSet()` on a base test case — a method with that name would be a compile-time fatal error.
+
 ### Snapshot Testing 101
 
 Let's do a snapshot assertion for a simple string, "foo".
@@ -271,7 +290,7 @@ protected function getSnapshotDirectory(): string
 
 ### Using specific Drivers
 
-The driver used to serialize the data can be specificied as second argument of the
+The driver used to serialize the data can be specified as second argument of the
 `assertMatchesSnapshot` method, so you can pick one that better suits your needs:
 
 ```php
@@ -290,6 +309,20 @@ class OrderTest
     }
 }
 ```
+
+`YamlDriver` accepts the Symfony `Yaml::dump()` options as optional constructor arguments — `inline`, `indent` and `flags` — defaulting to the previous behaviour byte-for-byte:
+
+```php
+use Spatie\Snapshots\Drivers\YamlDriver;
+use Symfony\Component\Yaml\Yaml;
+
+$this->assertMatchesSnapshot(
+    $openApiDocument,
+    new YamlDriver(inline: 10, indent: 2, flags: Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK)
+);
+```
+
+`serialize()` and `match()` apply the same options, so writing and comparing stay consistent. A string argument is parsed and re-dumped with these options; to keep regeneration byte-identical to a stored snapshot, construct the driver with the same options that snapshot was dumped with, or pass the array and let the driver dump it.
 
 ### Writing Custom Drivers
 
@@ -336,6 +369,38 @@ Drivers can be used by passing them as `assertMatchesSnapshot`'s second argument
 ```php
 $this->assertMatchesSnapshot($something->toYaml(), new MyYamlDriver());
 ```
+
+#### Custom drivers
+
+Each typed assertion builds its driver through an overridable factory method, so a test case swaps a driver by overriding one method instead of every assertion call site:
+
+```php
+namespace App\Tests;
+
+use PHPUnit\Framework\TestCase;
+use Spatie\Snapshots\Driver;
+use Spatie\Snapshots\MatchesSnapshots;
+
+class MyTest extends TestCase
+{
+    use MatchesSnapshots;
+
+    protected function getYamlDriver(): Driver
+    {
+        return new MyYamlDriver();
+    }
+}
+```
+
+The available factories are `getHtmlDriver()`, `getImageDriver()`, `getJsonDriver()`, `getObjectDriver()`, `getTextDriver()`, `getXmlDriver()` and `getYamlDriver()`. Each returns the built-in driver by default, typed as the `Driver` interface, so an override may return any driver. `getImageDriver()` receives the `$threshold` and `$includeAa` arguments of `assertMatchesImageSnapshot()` and passes them to `ImageDriver`.
+
+A few things to keep in mind:
+
+- The explicit per-assertion driver argument always wins over the factory.
+- `getImageDriver()` must keep the trait's signature `getImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver` when a base test case already uses `MatchesSnapshots`, because PHP checks that signature at compile time. Only an override declared in the same class that uses the trait may drop the parameters — PHP then silently ignores the extra arguments.
+- A driver's `extension()` becomes the snapshot file's extension. Overriding a factory with a driver whose `extension()` differs from the built-in one renames the snapshot files of every assertion that uses it.
+- `assertMatchesSnapshot()` without an explicit driver uses `getTextDriver()` for strings, ints and floats, and `getObjectDriver()` for everything else. `assertMatchesFileHashSnapshot()` uses `getTextDriver()`.
+- Like `getSnapshotDirectory()` and `getFileSnapshotDirectory()`, these method names are part of the trait, so a base test case that already declares one collides with the trait. If your base test case declares `getHtmlDriver()`, `getImageDriver()`, `getJsonDriver()`, `getObjectDriver()`, `getTextDriver()`, `getXmlDriver()` or `getYamlDriver()` with an incompatible signature, PHP reports a fatal error at compile time — "Cannot make static method ... non static" or an incompatible-signature error — not a runtime warning. Rename the method in your base test case, or give the test class that uses `MatchesSnapshots` its own declaration, which wins over the trait's.
 
 ### Usage in CI
 
