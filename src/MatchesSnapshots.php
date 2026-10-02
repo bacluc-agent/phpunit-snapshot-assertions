@@ -55,12 +55,12 @@ trait MatchesSnapshots
         }
 
         if (is_string($actual) || is_int($actual) || is_float($actual)) {
-            $this->doSnapshotAssertion($actual, new TextDriver, $id);
+            $this->doSnapshotAssertion($actual, $this->getTextDriver(), $id);
 
             return;
         }
 
-        $this->doSnapshotAssertion($actual, new ObjectDriver, $id);
+        $this->doSnapshotAssertion($actual, $this->getObjectDriver(), $id);
     }
 
     public function assertMatchesFileHashSnapshot(string $filePath, ?string $id = null): void
@@ -127,11 +127,9 @@ trait MatchesSnapshots
      * extension, so overriding a driver whose `extension()` differs from the
      * built-in one renames the snapshot files of every assertion that uses it.
      *
-     * This factory is not consulted by `assertMatchesSnapshot()` without an
-     * explicit driver, nor by `assertMatchesFileHashSnapshot()`. Pass your
-     * driver as `assertMatchesSnapshot`'s second argument, or use the typed
-     * `assertMatchesTextSnapshot()` / `assertMatchesObjectSnapshot()`, to
-     * customise those.
+     * `assertMatchesSnapshot()` without an explicit driver uses
+     * `getTextDriver()` for string/int/float and `getObjectDriver()` otherwise,
+     * so `assertMatchesFileHashSnapshot()` uses `getTextDriver()` as well.
      */
     protected function getHtmlDriver(): Driver
     {
