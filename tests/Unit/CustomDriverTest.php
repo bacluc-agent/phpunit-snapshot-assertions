@@ -46,15 +46,14 @@ class CustomDriverTest extends TestCase
     #[Test]
     public function it_returns_the_built_in_driver_when_the_factory_is_not_overridden()
     {
-        $case = $this->case();
         $defaultCase = new DefaultDriverTestCase($this->snapshotDirectory);
 
-        $this->assertInstanceOf(HtmlDriver::class, $case->factory('getHtmlDriver'));
+        $this->assertInstanceOf(HtmlDriver::class, $defaultCase->factory('getHtmlDriver'));
         $this->assertInstanceOf(JsonDriver::class, $defaultCase->factory('getJsonDriver'));
-        $this->assertInstanceOf(ObjectDriver::class, $case->factory('getObjectDriver'));
-        $this->assertInstanceOf(TextDriver::class, $case->factory('getTextDriver'));
-        $this->assertInstanceOf(XmlDriver::class, $case->factory('getXmlDriver'));
-        $this->assertInstanceOf(YamlDriver::class, $case->factory('getYamlDriver'));
+        $this->assertInstanceOf(ObjectDriver::class, $defaultCase->factory('getObjectDriver'));
+        $this->assertInstanceOf(TextDriver::class, $defaultCase->factory('getTextDriver'));
+        $this->assertInstanceOf(XmlDriver::class, $defaultCase->factory('getXmlDriver'));
+        $this->assertInstanceOf(YamlDriver::class, $defaultCase->factory('getYamlDriver'));
     }
 
     /** @test */
@@ -78,6 +77,66 @@ class CustomDriverTest extends TestCase
         $case = new OverriddenYamlDriverTestCase($this->snapshotDirectory);
 
         $case->assertMatchesYamlSnapshot("foo: bar\n", 'overridden-yaml');
+
+        $this->assertStringContainsString(
+            'custom-driver:',
+            file_get_contents(glob($this->snapshotDirectory.DIRECTORY_SEPARATOR.'*')[0])
+        );
+    }
+
+    /** @test */
+    #[Test]
+    public function it_uses_the_overridden_driver_for_every_typed_assertion()
+    {
+        $case = $this->case();
+
+        $case->assertMatchesHtmlSnapshot('<p>hi</p>', 'html');
+        $case->assertMatchesTextSnapshot('some text', 'text');
+        $case->assertMatchesObjectSnapshot((object) ['a' => 1], 'object');
+        $case->assertMatchesXmlSnapshot('<root/>', 'xml');
+
+        $written = array_map(
+            fn (string $file) => file_get_contents($file),
+            glob($this->snapshotDirectory.DIRECTORY_SEPARATOR.'*')
+        );
+
+        $this->assertCount(4, $written);
+
+        foreach ($written as $contents) {
+            $this->assertStringContainsString('custom-driver:', $contents);
+        }
+    }
+
+    /** @test */
+    #[Test]
+    public function it_uses_the_overridden_driver_for_assert_matches_snapshot_without_an_explicit_driver()
+    {
+        $case = $this->case();
+
+        $case->assertMatchesSnapshot('a string', null, 'implicit-text');
+        $case->assertMatchesSnapshot(42, null, 'implicit-int');
+        $case->assertMatchesSnapshot(['a' => 1], null, 'implicit-array');
+        $case->assertMatchesSnapshot((object) ['b' => 2], null, 'implicit-object');
+
+        $written = array_map(
+            fn (string $file) => file_get_contents($file),
+            glob($this->snapshotDirectory.DIRECTORY_SEPARATOR.'*')
+        );
+
+        $this->assertCount(4, $written);
+
+        foreach ($written as $contents) {
+            $this->assertStringContainsString('custom-driver:', $contents);
+        }
+    }
+
+    /** @test */
+    #[Test]
+    public function it_uses_the_overridden_text_driver_for_file_hash_snapshots()
+    {
+        $case = $this->case();
+
+        $case->assertMatchesFileHashSnapshot(__DIR__.'/test_files/testA.png', 'file-hash');
 
         $this->assertStringContainsString(
             'custom-driver:',
@@ -133,6 +192,16 @@ class CustomDriverTest extends TestCase
 }
 
 class LabelledTextDriver extends TextDriver
+{
+    private const LABEL = 'custom-driver:';
+
+    public function serialize($data): string
+    {
+        return self::LABEL.parent::serialize($data);
+    }
+}
+
+class LabelledObjectDriver extends ObjectDriver
 {
     private const LABEL = 'custom-driver:';
 
@@ -198,6 +267,26 @@ class CustomDriverTestCase extends CustomDriverTestCaseBase
         $this->imageDriverArgs = [$threshold, $includeAa];
 
         return new TextDriver;
+    }
+
+    protected function getHtmlDriver(): Driver
+    {
+        return new LabelledTextDriver;
+    }
+
+    protected function getXmlDriver(): Driver
+    {
+        return new LabelledTextDriver;
+    }
+
+    protected function getTextDriver(): Driver
+    {
+        return new LabelledTextDriver;
+    }
+
+    protected function getObjectDriver(): Driver
+    {
+        return new LabelledObjectDriver;
     }
 }
 
