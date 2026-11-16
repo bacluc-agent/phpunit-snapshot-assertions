@@ -55,12 +55,12 @@ trait MatchesSnapshots
         }
 
         if (is_string($actual) || is_int($actual) || is_float($actual)) {
-            $this->doSnapshotAssertion($actual, $this->getTextDriver(), $id);
+            $this->doSnapshotAssertion($actual, $this->getSpatieTextDriver(), $id);
 
             return;
         }
 
-        $this->doSnapshotAssertion($actual, $this->getObjectDriver(), $id);
+        $this->doSnapshotAssertion($actual, $this->getSpatieObjectDriver(), $id);
     }
 
     public function assertMatchesFileHashSnapshot(string $filePath, ?string $id = null): void
@@ -81,32 +81,32 @@ trait MatchesSnapshots
 
     public function assertMatchesHtmlSnapshot(string $actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, $this->getHtmlDriver(), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieHtmlDriver(), $id);
     }
 
     public function assertMatchesJsonSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, $this->getJsonDriver(), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieJsonDriver(), $id);
     }
 
     public function assertMatchesObjectSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, $this->getObjectDriver(), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieObjectDriver(), $id);
     }
 
     public function assertMatchesTextSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, $this->getTextDriver(), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieTextDriver(), $id);
     }
 
     public function assertMatchesXmlSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, $this->getXmlDriver(), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieXmlDriver(), $id);
     }
 
     public function assertMatchesYamlSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, $this->getYamlDriver(), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieYamlDriver(), $id);
     }
 
     public function assertMatchesImageSnapshot(
@@ -115,7 +115,7 @@ trait MatchesSnapshots
         bool $includeAa = true,
         ?string $id = null
     ): void {
-        $this->assertMatchesSnapshot($actual, $this->getImageDriver($threshold, $includeAa), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieImageDriver($threshold, $includeAa), $id);
     }
 
     /*
@@ -128,40 +128,40 @@ trait MatchesSnapshots
      * built-in one renames the snapshot files of every assertion that uses it.
      *
      * `assertMatchesSnapshot()` without an explicit driver uses
-     * `getTextDriver()` for string/int/float and `getObjectDriver()` otherwise,
-     * so `assertMatchesFileHashSnapshot()` uses `getTextDriver()` as well.
+     * `getSpatieTextDriver()` for string/int/float and `getSpatieObjectDriver()` otherwise,
+     * so `assertMatchesFileHashSnapshot()` uses `getSpatieTextDriver()` as well.
      */
-    protected function getHtmlDriver(): Driver
+    protected function getSpatieHtmlDriver(): Driver
     {
         return new HtmlDriver;
     }
 
-    protected function getImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver
+    protected function getSpatieImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver
     {
         return new ImageDriver($threshold, $includeAa);
     }
 
-    protected function getJsonDriver(): Driver
+    protected function getSpatieJsonDriver(): Driver
     {
         return new JsonDriver;
     }
 
-    protected function getObjectDriver(): Driver
+    protected function getSpatieObjectDriver(): Driver
     {
         return new ObjectDriver;
     }
 
-    protected function getTextDriver(): Driver
+    protected function getSpatieTextDriver(): Driver
     {
         return new TextDriver;
     }
 
-    protected function getXmlDriver(): Driver
+    protected function getSpatieXmlDriver(): Driver
     {
         return new XmlDriver;
     }
 
-    protected function getYamlDriver(): Driver
+    protected function getSpatieYamlDriver(): Driver
     {
         return new YamlDriver;
     }

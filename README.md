@@ -385,22 +385,22 @@ class MyTest extends TestCase
 {
     use MatchesSnapshots;
 
-    protected function getYamlDriver(): Driver
+    protected function getSpatieYamlDriver(): Driver
     {
         return new MyYamlDriver();
     }
 }
 ```
 
-The available factories are `getHtmlDriver()`, `getImageDriver()`, `getJsonDriver()`, `getObjectDriver()`, `getTextDriver()`, `getXmlDriver()` and `getYamlDriver()`. Each returns the built-in driver by default, typed as the `Driver` interface, so an override may return any driver. `getImageDriver()` receives the `$threshold` and `$includeAa` arguments of `assertMatchesImageSnapshot()` and passes them to `ImageDriver`.
+The available factories are `getSpatieHtmlDriver()`, `getSpatieImageDriver()`, `getSpatieJsonDriver()`, `getSpatieObjectDriver()`, `getSpatieTextDriver()`, `getSpatieXmlDriver()` and `getSpatieYamlDriver()`. Each returns the built-in driver by default, typed as the `Driver` interface, so an override may return any driver. `getSpatieImageDriver()` receives the `$threshold` and `$includeAa` arguments of `assertMatchesImageSnapshot()` and passes them to `ImageDriver`.
 
 A few things to keep in mind:
 
 - The explicit per-assertion driver argument always wins over the factory.
-- `getImageDriver()` must keep the trait's signature `getImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver` when a base test case already uses `MatchesSnapshots`, because PHP checks that signature at compile time. Only an override declared in the same class that uses the trait may drop the parameters — PHP then silently ignores the extra arguments.
+- `getSpatieImageDriver()` must keep the trait's signature `getSpatieImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver` when a base test case already uses `MatchesSnapshots`, because PHP checks that signature at compile time. Only an override declared in the same class that uses the trait may drop the parameters — PHP then silently ignores the extra arguments.
 - A driver's `extension()` becomes the snapshot file's extension. Overriding a factory with a driver whose `extension()` differs from the built-in one renames the snapshot files of every assertion that uses it.
-- `assertMatchesSnapshot()` without an explicit driver uses `getTextDriver()` for strings, ints and floats, and `getObjectDriver()` for everything else. `assertMatchesFileHashSnapshot()` uses `getTextDriver()`.
-- Like `getSnapshotDirectory()` and `getFileSnapshotDirectory()`, these method names are part of the trait, so a base test case that already declares one collides with the trait. If your base test case declares `getHtmlDriver()`, `getImageDriver()`, `getJsonDriver()`, `getObjectDriver()`, `getTextDriver()`, `getXmlDriver()` or `getYamlDriver()` with an incompatible signature, PHP reports a fatal error at compile time — "Cannot make static method ... non static" or an incompatible-signature error — not a runtime warning. Rename the method in your base test case, or give the test class that uses `MatchesSnapshots` its own declaration, which wins over the trait's.
+- `assertMatchesSnapshot()` without an explicit driver uses `getSpatieTextDriver()` for strings, ints and floats, and `getSpatieObjectDriver()` for everything else. `assertMatchesFileHashSnapshot()` uses `getSpatieTextDriver()`.
+- The factory names use a `getSpatie` prefix to avoid colliding with common downstream helper methods. A downstream class or trait that already declares one of these exact names with an incompatible signature still gets PHP's compile-time method-conflict error.
 
 ### Usage in CI
 

@@ -48,12 +48,12 @@ class CustomDriverTest extends TestCase
     {
         $defaultCase = new DefaultDriverTestCase($this->snapshotDirectory);
 
-        $this->assertInstanceOf(HtmlDriver::class, $defaultCase->factory('getHtmlDriver'));
-        $this->assertInstanceOf(JsonDriver::class, $defaultCase->factory('getJsonDriver'));
-        $this->assertInstanceOf(ObjectDriver::class, $defaultCase->factory('getObjectDriver'));
-        $this->assertInstanceOf(TextDriver::class, $defaultCase->factory('getTextDriver'));
-        $this->assertInstanceOf(XmlDriver::class, $defaultCase->factory('getXmlDriver'));
-        $this->assertInstanceOf(YamlDriver::class, $defaultCase->factory('getYamlDriver'));
+        $this->assertInstanceOf(HtmlDriver::class, $defaultCase->factory('getSpatieHtmlDriver'));
+        $this->assertInstanceOf(JsonDriver::class, $defaultCase->factory('getSpatieJsonDriver'));
+        $this->assertInstanceOf(ObjectDriver::class, $defaultCase->factory('getSpatieObjectDriver'));
+        $this->assertInstanceOf(TextDriver::class, $defaultCase->factory('getSpatieTextDriver'));
+        $this->assertInstanceOf(XmlDriver::class, $defaultCase->factory('getSpatieXmlDriver'));
+        $this->assertInstanceOf(YamlDriver::class, $defaultCase->factory('getSpatieYamlDriver'));
     }
 
     /** @test */
@@ -173,7 +173,7 @@ class CustomDriverTest extends TestCase
     #[Test]
     public function it_forwards_its_arguments_to_the_default_image_driver()
     {
-        $driver = (new DefaultDriverTestCase($this->snapshotDirectory))->factory('getImageDriver', 0.5, false);
+        $driver = (new DefaultDriverTestCase($this->snapshotDirectory))->factory('getSpatieImageDriver', 0.5, false);
 
         $read = Closure::bind(function () {
             return [$this->threshold, $this->includeAa];
@@ -257,34 +257,34 @@ class CustomDriverTestCase extends CustomDriverTestCaseBase
     /** @var array */
     public array $imageDriverArgs = [];
 
-    protected function getJsonDriver(): Driver
+    protected function getSpatieJsonDriver(): Driver
     {
         return new LabelledTextDriver;
     }
 
-    protected function getImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver
+    protected function getSpatieImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver
     {
         $this->imageDriverArgs = [$threshold, $includeAa];
 
         return new TextDriver;
     }
 
-    protected function getHtmlDriver(): Driver
+    protected function getSpatieHtmlDriver(): Driver
     {
         return new LabelledTextDriver;
     }
 
-    protected function getXmlDriver(): Driver
+    protected function getSpatieXmlDriver(): Driver
     {
         return new LabelledTextDriver;
     }
 
-    protected function getTextDriver(): Driver
+    protected function getSpatieTextDriver(): Driver
     {
         return new LabelledTextDriver;
     }
 
-    protected function getObjectDriver(): Driver
+    protected function getSpatieObjectDriver(): Driver
     {
         return new LabelledObjectDriver;
     }
@@ -292,7 +292,7 @@ class CustomDriverTestCase extends CustomDriverTestCaseBase
 
 class OverriddenYamlDriverTestCase extends CustomDriverTestCaseBase
 {
-    protected function getYamlDriver(): Driver
+    protected function getSpatieYamlDriver(): Driver
     {
         return new LabelledTextDriver;
     }
