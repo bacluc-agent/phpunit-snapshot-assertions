@@ -86,6 +86,21 @@ class CustomDriverTest extends TestCase
 
     /** @test */
     #[Test]
+    public function it_preserves_yaml_string_bytes_with_a_preserving_driver()
+    {
+        $case = new PreservingYamlDriverTestCase($this->snapshotDirectory);
+        $yaml = "foo:   bar\r\nqux:  'quoted'\r\n";
+
+        $case->assertMatchesYamlSnapshot($yaml, 'preserved-yaml');
+
+        $this->assertSame(
+            $yaml,
+            file_get_contents(glob($this->snapshotDirectory.DIRECTORY_SEPARATOR.'*')[0])
+        );
+    }
+
+    /** @test */
+    #[Test]
     public function it_uses_the_overridden_driver_for_every_typed_assertion()
     {
         $case = $this->case();
@@ -295,6 +310,14 @@ class OverriddenYamlDriverTestCase extends CustomDriverTestCaseBase
     protected function getSpatieYamlDriver(): Driver
     {
         return new LabelledTextDriver;
+    }
+}
+
+class PreservingYamlDriverTestCase extends CustomDriverTestCaseBase
+{
+    protected function getSpatieYamlDriver(): Driver
+    {
+        return new YamlDriver(preserveStrings: true);
     }
 }
 

@@ -324,7 +324,13 @@ $this->assertMatchesSnapshot(
 );
 ```
 
-`serialize()` and `match()` apply the same options, so writing and comparing stay consistent. A string argument is parsed and re-dumped with these options; to keep regeneration byte-identical to a stored snapshot, construct the driver with the same options that snapshot was dumped with, or pass the array and let the driver dump it.
+`serialize()` and `match()` apply the same options, so writing and comparing stay consistent. By default a string argument is parsed and re-dumped with these options, which normalises non-canonical spacing and line endings. Pass `preserveStrings: true` to return string input byte-for-byte instead — useful for pre-rendered YAML such as an OpenAPI document:
+
+```php
+$this->assertMatchesSnapshot($openApiYaml, new YamlDriver(preserveStrings: true));
+```
+
+`match()` compares strings verbatim, so a preserved string is compared exactly as stored.
 
 ### Writing Custom Drivers
 

@@ -13,11 +13,16 @@ class YamlDriver implements Driver
         protected int $inline = PHP_INT_MAX,
         protected int $indent = 4,
         protected int $flags = 0,
+        protected bool $preserveStrings = false,
     ) {}
 
     public function serialize($data): string
     {
         if (is_string($data)) {
+            if ($this->preserveStrings) {
+                return $data;
+            }
+
             $data = Yaml::parse($data);
         }
 

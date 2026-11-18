@@ -64,4 +64,25 @@ class YamlDriverTest extends TestCase
         $this->assertStringContainsString("\n  b: c", (new YamlDriver(indent: 2))->serialize($nested));
         $this->assertStringNotContainsString("\n  b: c", (new YamlDriver)->serialize($nested));
     }
+
+    /** @test */
+    #[Test]
+    public function it_preserves_string_input_byte_for_byte_when_enabled()
+    {
+        $yaml = "foo:   bar\r\nqux:  'quoted'\r\n";
+
+        $driver = new YamlDriver(preserveStrings: true);
+
+        $this->assertSame($yaml, $driver->serialize($yaml));
+        $driver->match($yaml, $yaml);
+    }
+
+    /** @test */
+    #[Test]
+    public function it_still_normalises_string_input_by_default()
+    {
+        $yaml = "foo:   bar\r\nqux:  'quoted'\r\n";
+
+        $this->assertNotSame($yaml, (new YamlDriver)->serialize($yaml));
+    }
 }
