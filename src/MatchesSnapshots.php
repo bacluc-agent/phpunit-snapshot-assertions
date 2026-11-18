@@ -55,12 +55,12 @@ trait MatchesSnapshots
         }
 
         if (is_string($actual) || is_int($actual) || is_float($actual)) {
-            $this->doSnapshotAssertion($actual, new TextDriver, $id);
+            $this->doSnapshotAssertion($actual, $this->getSpatieTextDriver(), $id);
 
             return;
         }
 
-        $this->doSnapshotAssertion($actual, new ObjectDriver, $id);
+        $this->doSnapshotAssertion($actual, $this->getSpatieObjectDriver(), $id);
     }
 
     public function assertMatchesFileHashSnapshot(string $filePath, ?string $id = null): void
@@ -81,32 +81,32 @@ trait MatchesSnapshots
 
     public function assertMatchesHtmlSnapshot(string $actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, new HtmlDriver, $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieHtmlDriver(), $id);
     }
 
     public function assertMatchesJsonSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, new JsonDriver, $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieJsonDriver(), $id);
     }
 
     public function assertMatchesObjectSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, new ObjectDriver, $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieObjectDriver(), $id);
     }
 
     public function assertMatchesTextSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, new TextDriver, $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieTextDriver(), $id);
     }
 
     public function assertMatchesXmlSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, new XmlDriver, $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieXmlDriver(), $id);
     }
 
     public function assertMatchesYamlSnapshot($actual, ?string $id = null): void
     {
-        $this->assertMatchesSnapshot($actual, new YamlDriver, $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieYamlDriver(), $id);
     }
 
     public function assertMatchesImageSnapshot(
@@ -115,10 +115,55 @@ trait MatchesSnapshots
         bool $includeAa = true,
         ?string $id = null
     ): void {
-        $this->assertMatchesSnapshot($actual, new ImageDriver(
-            $threshold,
-            $includeAa,
-        ), $id);
+        $this->assertMatchesSnapshot($actual, $this->getSpatieImageDriver($threshold, $includeAa), $id);
+    }
+
+    /*
+     * Determines the driver used by the matching `assertMatches*Snapshot`
+     * method. By default the built-in driver is returned.
+     *
+     * Override this method if you want to use a different driver for the
+     * matching assertion. The returned driver determines the snapshot file's
+     * extension, so overriding a driver whose `extension()` differs from the
+     * built-in one renames the snapshot files of every assertion that uses it.
+     *
+     * `assertMatchesSnapshot()` without an explicit driver uses
+     * `getSpatieTextDriver()` for string/int/float and `getSpatieObjectDriver()` otherwise,
+     * so `assertMatchesFileHashSnapshot()` uses `getSpatieTextDriver()` as well.
+     */
+    protected function getSpatieHtmlDriver(): Driver
+    {
+        return new HtmlDriver;
+    }
+
+    protected function getSpatieImageDriver(float $threshold = 0.1, bool $includeAa = true): Driver
+    {
+        return new ImageDriver($threshold, $includeAa);
+    }
+
+    protected function getSpatieJsonDriver(): Driver
+    {
+        return new JsonDriver;
+    }
+
+    protected function getSpatieObjectDriver(): Driver
+    {
+        return new ObjectDriver;
+    }
+
+    protected function getSpatieTextDriver(): Driver
+    {
+        return new TextDriver;
+    }
+
+    protected function getSpatieXmlDriver(): Driver
+    {
+        return new XmlDriver;
+    }
+
+    protected function getSpatieYamlDriver(): Driver
+    {
+        return new YamlDriver;
     }
 
     /*
